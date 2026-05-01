@@ -1,57 +1,121 @@
-import { useRef } from 'react'
-import { useStore } from './store'
-import AvatarScene from './components/avatar/AvatarScene'
-import InputForm from './components/ui/InputForm'
-import PromptPanel from './components/ui/PromptPanel'
-import Gallery from './components/ui/Gallery'
-// import { generateImage } from './api/generate'  // C 모듈 완성 후 활성화
+import { useState } from 'react'
+import reactLogo from './assets/react.svg'
+import viteLogo from './assets/vite.svg'
+import heroImg from './assets/hero.png'
+import './App.css'
 
 function App() {
-  const sceneRef = useRef()
-  const { metrics, currentPose, addGeneratedImage, setLoading } = useStore()
-
-  const handleGenerate = async (prompt) => {
-    setLoading(true)
-    try {
-      // 1. A 모듈: 현재 화면 캡처
-      const poseImage = sceneRef.current?.capture()
-      if (!poseImage) {
-        console.warn('Scene not ready')
-        return
-      }
-
-      // 2. C 모듈: API 호출 (구현 후 주석 해제)
-      // const result = await generateImage(poseImage, prompt)
-      // addGeneratedImage(result)
-
-      // 임시: 캡처된 이미지를 갤러리에 그대로 추가
-      addGeneratedImage(poseImage)
-    } catch (err) {
-      console.error('Generation failed:', err)
-    } finally {
-      setLoading(false)
-    }
-  }
+  const [count, setCount] = useState(0)
 
   return (
-    <div className="flex w-screen h-screen bg-gray-50">
-      {/* 좌측: 입력 폼 + 프롬프트 */}
-      <div className="w-1/3 p-4 border-r overflow-y-auto bg-white">
-        <h1 className="text-xl font-bold mb-4">3D Virtual Fitting</h1>
-        <InputForm />
-        <PromptPanel onGenerate={handleGenerate} />
-      </div>
+    <>
+      <section id="center">
+        <div className="hero">
+          <img src={heroImg} className="base" width="170" height="179" alt="" />
+          <img src={reactLogo} className="framework" alt="React logo" />
+          <img src={viteLogo} className="vite" alt="Vite logo" />
+        </div>
+        <div>
+          <h1>Get started</h1>
+          <p>
+            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
+          </p>
+        </div>
+        <button
+          type="button"
+          className="counter"
+          onClick={() => setCount((count) => count + 1)}
+        >
+          Count is {count}
+        </button>
+      </section>
 
-      {/* 중앙: 3D 씬 */}
-      <div className="w-1/3 relative bg-gray-100">
-        <AvatarScene ref={sceneRef} metrics={metrics} pose={currentPose} />
-      </div>
+      <div className="ticks"></div>
 
-      {/* 우측: 갤러리 */}
-      <div className="w-1/3 p-4 border-l overflow-y-auto bg-white">
-        <Gallery />
-      </div>
-    </div>
+      <section id="next-steps">
+        <div id="docs">
+          <svg className="icon" role="presentation" aria-hidden="true">
+            <use href="/icons.svg#documentation-icon"></use>
+          </svg>
+          <h2>Documentation</h2>
+          <p>Your questions, answered</p>
+          <ul>
+            <li>
+              <a href="https://vite.dev/" target="_blank">
+                <img className="logo" src={viteLogo} alt="" />
+                Explore Vite
+              </a>
+            </li>
+            <li>
+              <a href="https://react.dev/" target="_blank">
+                <img className="button-icon" src={reactLogo} alt="" />
+                Learn more
+              </a>
+            </li>
+          </ul>
+        </div>
+        <div id="social">
+          <svg className="icon" role="presentation" aria-hidden="true">
+            <use href="/icons.svg#social-icon"></use>
+          </svg>
+          <h2>Connect with us</h2>
+          <p>Join the Vite community</p>
+          <ul>
+            <li>
+              <a href="https://github.com/vitejs/vite" target="_blank">
+                <svg
+                  className="button-icon"
+                  role="presentation"
+                  aria-hidden="true"
+                >
+                  <use href="/icons.svg#github-icon"></use>
+                </svg>
+                GitHub
+              </a>
+            </li>
+            <li>
+              <a href="https://chat.vite.dev/" target="_blank">
+                <svg
+                  className="button-icon"
+                  role="presentation"
+                  aria-hidden="true"
+                >
+                  <use href="/icons.svg#discord-icon"></use>
+                </svg>
+                Discord
+              </a>
+            </li>
+            <li>
+              <a href="https://x.com/vite_js" target="_blank">
+                <svg
+                  className="button-icon"
+                  role="presentation"
+                  aria-hidden="true"
+                >
+                  <use href="/icons.svg#x-icon"></use>
+                </svg>
+                X.com
+              </a>
+            </li>
+            <li>
+              <a href="https://bsky.app/profile/vite.dev" target="_blank">
+                <svg
+                  className="button-icon"
+                  role="presentation"
+                  aria-hidden="true"
+                >
+                  <use href="/icons.svg#bluesky-icon"></use>
+                </svg>
+                Bluesky
+              </a>
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <div className="ticks"></div>
+      <section id="spacer"></section>
+    </>
   )
 }
 
