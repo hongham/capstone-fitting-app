@@ -1,66 +1,112 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useStore } from '../../store'
 
-/**
- * PromptPanel
- * - 옷 프롬프트 입력 (B 담당)
- *
- * TODO:
- *   - 프리셋 프롬프트 라이브러리 확장 (C와 협업)
- *   - 좋아요/저장 기능
- */
+// 카테고리별 태그 데이터
+const PROMPT_TAGS = {
+  상의: ['티셔츠', '셔츠', '후드티', '니트', '맨투맨', '자켓', '코트'],
+  하의: ['슬랙스', '청바지', '치노팬츠', '와이드팬츠', '반바지'],
+  스타일: ['오버핏', '슬림핏', '스트릿', '미니멀', '빈티지'],
+  소재: ['면', '데님', '가죽', '린넨', '캐시미어']
+}
 
-const PROMPT_PRESETS = [
-  '검정 오버사이즈 후드티, 면',
-  '흰색 티셔츠, 슬림핏',
-  '베이지 트렌치코트',
-  '데님 자켓, 빈티지',
-  '블랙 가죽자켓',
-  '니트 스웨터, 크림색',
+const LOADING_STEPS = [
+  '아바타 포즈 분석 중...',
+  '의상 실루엣 생성 중...',
+  '원단 질감 입히는 중...',
+  '디테일 마무리 중...'
 ]
 
 export default function PromptPanel({ onGenerate }) {
   const [prompt, setPrompt] = useState('')
-  const isLoading = useStore((s) => s.isLoading)
+  const [stepIndex, setStepIndex] = useState(0)
+  const isLoading = useStore((state) => state.isLoading)
 
-  const handleClick = () => {
-    if (!prompt.trim()) return
-    onGenerate(prompt)
+  // 태그 클릭 시 프롬프트에 추가하는 함수
+  const handleTagClick = (tag) => {
+    if (isLoading) return
+    setPrompt((prev) => {
+      const trimmed = prev.trim()
+      if (!trimmed) return tag
+      if (trimmed.includes(tag)) return prev // 이미 있으면 추가 안 함
+      return `${trimmed}, ${tag}` // 쉼표로 구분하여 추가
+    })
   }
 
-  return (
-    <div className="space-y-3 border-t pt-4">
-      <h2 className="text-lg font-semibold">옷 입혀보기</h2>
+  useEffect(() => {
+    let interval;
+    if (isLoading) {
+      setStepIndex(0);
+      interval = setInterval(() => {
+        setStepIndex((prev) => (prev < LOADING_STEPS.length - 1 ? prev + 1 : prev));
+      }, 1500); 
+    }
+    return () => clearInterval(interval);
+  }, [isLoading]);
 
+  return (
+    <div className="space-y-4 border-t pt-6 mt-4">
+      <div className="flex justify-between items-center">
+        <h2 className="text-lg font-bold text-gray-800">옷 입혀보기</h2>
+        <button 
+          onClick={() => setPrompt('')}
+          className="text-[10px] text-gray-400 hover:text-red-500 underline"
+        >
+          초기화
+        </button>
+      </div>
+
+      {/* 프롬프트 입력창 */}
       <textarea
         value={prompt}
         onChange={(e) => setPrompt(e.target.value)}
-        placeholder="원하는 옷을 자유롭게 묘사하세요. 예: 검정 후드티, 면 소재, 오버핏"
-        className="w-full p-2 border rounded text-sm"
+        placeholder="태그를 클릭하거나 직접 묘사하세요."
+        className="w-full p-3 border rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all bg-gray-50 focus:bg-white"
         rows={3}
+        disabled={isLoading}
       />
 
-      <div>
-        <p className="text-xs text-gray-500 mb-1">빠른 선택:</p>
-        <div className="flex flex-wrap gap-1">
-          {PROMPT_PRESETS.map((preset) => (
-            <button
-              key={preset}
-              onClick={() => setPrompt(preset)}
-              className="px-2 py-1 bg-gray-100 rounded text-xs hover:bg-gray-200"
-            >
-              {preset}
-            </button>
-          ))}
-        </div>
+      {/* 태그 추천 섹션 */}
+      <div className="space-y-3">
+        {Object.entries(PROMPT_TAGS).map(([category, tags]) => (
+          <div key={category}>
+            <p className="text-[10px] font-bold text-gray-400 mb-1.5 ml-1">{category}</p>
+            <div className="flex flex-wrap gap-1.5">
+              {tags.map((tag) => (
+                <button
+                  key={tag}
+                  onClick={() => handleTagClick(tag)}
+                  disabled={isLoading}
+                  className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition-all ${
+                    prompt.includes(tag)
+                      ? 'bg-blue-100 text-blue-600 border-blue-200 border'
+                      : 'bg-white border border-gray-200 text-gray-600 hover:border-blue-400'
+                  } disabled:opacity-50`}
+                >
+                  {tag}
+                </button>
+              ))}
+            </div>
+          </div>
+        ))}
       </div>
 
+      {/* 생성 버튼 */}
       <button
-        onClick={handleClick}
+        onClick={() => onGenerate(prompt)}
         disabled={isLoading || !prompt.trim()}
-        className="w-full py-2 bg-blue-500 text-white rounded font-semibold disabled:bg-gray-300"
+        className={`w-full py-4 rounded-xl font-bold text-lg transition-all ${
+          isLoading 
+            ? 'bg-amber-400 text-amber-900 scale-95' 
+            : 'bg-blue-600 text-white hover:bg-blue-700 shadow-lg active:scale-95'
+        }`}
       >
-        {isLoading ? '생성 중...' : '옷 입혀보기'}
+        {isLoading ? (
+          <div className="flex flex-col items-center">
+            <span className="animate-pulse">✨ {LOADING_STEPS[stepIndex]}</span>
+          </div>
+        ) : (
+          '지금 피팅하기'
+        )}
       </button>
     </div>
   )

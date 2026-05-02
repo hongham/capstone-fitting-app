@@ -4,53 +4,60 @@ import AvatarScene from './components/avatar/AvatarScene'
 import InputForm from './components/ui/InputForm'
 import PromptPanel from './components/ui/PromptPanel'
 import Gallery from './components/ui/Gallery'
-// import { generateImage } from './api/generate'  // C 모듈 완성 후 활성화
 
 function App() {
   const sceneRef = useRef()
-  const { metrics, currentPose, addGeneratedImage, setLoading } = useStore()
+  const { metrics, currentPose, addGeneratedImage, setLoading, isDarkMode, toggleDarkMode } = useStore()
 
   const handleGenerate = async (prompt) => {
     setLoading(true)
     try {
-      // 1. A 모듈: 현재 화면 캡처
+      await new Promise(resolve => setTimeout(resolve, 3000));
       const poseImage = sceneRef.current?.capture()
-      if (!poseImage) {
-        console.warn('Scene not ready')
-        return
-      }
-
-      // 2. C 모듈: API 호출 (구현 후 주석 해제)
-      // const result = await generateImage(poseImage, prompt)
-      // addGeneratedImage(result)
-
-      // 임시: 캡처된 이미지를 갤러리에 그대로 추가
-      addGeneratedImage(poseImage)
+      if (poseImage) addGeneratedImage(poseImage)
     } catch (err) {
-      console.error('Generation failed:', err)
+      console.error(err)
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="flex w-screen h-screen bg-gray-50">
-      {/* 좌측: 입력 폼 + 프롬프트 */}
-      <div className="w-1/3 p-4 border-r overflow-y-auto bg-white">
-        <h1 className="text-xl font-bold mb-4">3D Virtual Fitting</h1>
+    <div className={`flex w-screen h-screen transition-colors duration-500 overflow-hidden ${
+      isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'
+    }`}>
+      
+      {/* 좌측 패널 */}
+      <div className={`w-1/3 p-6 border-r overflow-y-auto z-10 transition-colors ${
+        isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
+      }`}>
+        <h1 className="text-2xl font-black mb-8 text-blue-500 italic tracking-tighter">3D VIRTUAL FITTING</h1>
         <InputForm />
         <PromptPanel onGenerate={handleGenerate} />
       </div>
 
-      {/* 중앙: 3D 씬 */}
-      <div className="w-1/3 relative bg-gray-100">
+      {/* 중앙 3D 씬 */}
+      <div className="w-1/3 relative z-0">
         <AvatarScene ref={sceneRef} metrics={metrics} pose={currentPose} />
       </div>
 
-      {/* 우측: 갤러리 */}
-      <div className="w-1/3 p-4 border-l overflow-y-auto bg-white">
+      {/* 우측 갤러리 패널: z-index와 relative를 확실히 부여 */}
+      <div className={`w-1/3 p-6 border-l overflow-y-auto relative z-30 transition-colors ${
+        isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
+      }`}>
         <Gallery />
       </div>
+
+      {/* 다크모드 버튼: fixed 위치와 높은 z-index로 독립 배치 */}
+      <button 
+        onClick={(e) => {
+          e.stopPropagation();
+          toggleDarkMode();
+        }}
+        className="fixed bottom-8 right-8 z-[100] w-14 h-14 rounded-full shadow-2xl flex items-center justify-center text-2xl border-2 bg-white dark:bg-gray-800 border-blue-500 transition-transform active:scale-90"
+      >
+        {isDarkMode ? '☀️' : '🌙'}
+      </button>
     </div>
   )
 }
