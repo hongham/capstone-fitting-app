@@ -5,25 +5,25 @@
  * 본 구조 확인 방법: Avatar 컴포넌트의 console.log 출력 참고.
  */
 export const BONE_MAP = {
-  hips: 'Hips',
-  spine: 'Spine',
-  spine1: 'Spine1',
-  spine2: 'Spine2',
-  chest: 'Spine2',  // 가슴 둘레는 Spine2가 적절
-  neck: 'Neck',
-  head: 'Head',
+  hips: ['Hips', 'mixamorigHips'],
+  spine: ['Spine', 'mixamorigSpine'],
+  spine1: ['Spine1', 'mixamorigSpine1'],
+  spine2: ['Spine2', 'mixamorigSpine2'],
+  chest: ['Spine2', 'Chest', 'mixamorigSpine2'],  // 가슴 둘레는 Spine2/Chest가 적절
+  neck: ['Neck', 'mixamorigNeck'],
+  head: ['Head', 'mixamorigHead'],
 
-  leftShoulder: 'LeftShoulder',
-  leftArm: 'LeftArm',
-  leftForeArm: 'LeftForeArm',
-  rightShoulder: 'RightShoulder',
-  rightArm: 'RightArm',
-  rightForeArm: 'RightForeArm',
+  leftShoulder: ['LeftShoulder', 'mixamorigLeftShoulder'],
+  leftArm: ['LeftArm', 'LeftUpperArm', 'mixamorigLeftArm'],
+  leftForeArm: ['LeftForeArm', 'LeftLowerArm', 'mixamorigLeftForeArm'],
+  rightShoulder: ['RightShoulder', 'mixamorigRightShoulder'],
+  rightArm: ['RightArm', 'RightUpperArm', 'mixamorigRightArm'],
+  rightForeArm: ['RightForeArm', 'RightLowerArm', 'mixamorigRightForeArm'],
 
-  leftUpLeg: 'LeftUpLeg',
-  leftLeg: 'LeftLeg',
-  rightUpLeg: 'RightUpLeg',
-  rightLeg: 'RightLeg',
+  leftUpLeg: ['LeftUpLeg', 'LeftUpperLeg', 'mixamorigLeftUpLeg'],
+  leftLeg: ['LeftLeg', 'LeftLowerLeg', 'mixamorigLeftLeg'],
+  rightUpLeg: ['RightUpLeg', 'RightUpperLeg', 'mixamorigRightUpLeg'],
+  rightLeg: ['RightLeg', 'RightLowerLeg', 'mixamorigRightLeg'],
 }
 
 /**
@@ -33,12 +33,14 @@ export const BONE_MAP = {
  * @returns {THREE.Bone | null}
  */
 export function findBone(scene, key) {
-  const name = BONE_MAP[key]
-  if (!name) return null
+  const names = BONE_MAP[key]
+  if (!names) return null
+  const aliases = Array.isArray(names) ? names : [names]
 
   let result = null
   scene.traverse((obj) => {
-    if (obj.isBone && obj.name === name) {
+    if (!obj.isBone || result) return
+    if (aliases.some((name) => obj.name === name || obj.name.endsWith(name))) {
       result = obj
     }
   })
