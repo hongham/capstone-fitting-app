@@ -7,15 +7,45 @@ export default function Gallery() {
   const [compareList, setCompareList] = useState([])
   const [isCompareMode, setIsCompareMode] = useState(false)
 
-  // 이미지 다운로드 함수
-  const handleDownload = (e, url, filename = 'fitting-result.png') => {
+  // --- [핵심: 보안을 뚫고 즉시 저장하는 함수] ---
+  const handleDownload = async (e, url, filename = 'fitting-result.png') => {
     e.stopPropagation();
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    
+    try {
+      const img = new Image();
+      img.crossOrigin = "anonymous"; // 보안 허용 요청
+      img.src = url;
+
+      img.onload = () => {
+        // 가상 도화지(Canvas) 생성
+        const canvas = document.createElement("canvas");
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext("2d");
+        
+        // 도화지에 원본 이미지를 그림
+        ctx.drawImage(img, 0, 0);
+
+        // 도화지 내용을 내 로컬 데이터(PNG)로 변환 (CORS 우회 핵심)
+        const dataUrl = canvas.toDataURL("image/png");
+        
+        // 가상 링크를 만들어 즉시 다운로드 실행
+        const link = document.createElement("a");
+        link.href = dataUrl;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      };
+
+      img.onerror = () => {
+        // 캔버스 방식도 실패할 경우 (최후의 보루)
+        window.open(url, '_blank');
+      };
+    } catch (error) {
+      console.error("저장 실패:", error);
+      window.open(url, '_blank');
+    }
   }
 
   const toggleCompare = (e, img) => {
@@ -33,7 +63,7 @@ export default function Gallery() {
   }
 
   return (
-    <div className="relative h-full flex flex-col">
+    <div className="relative h-full flex flex-col p-4">
       <div className="flex justify-between items-center mb-6">
         <h2 className={`text-xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>갤러리</h2>
         <div className="flex gap-2">
@@ -77,63 +107,54 @@ export default function Gallery() {
                   }`}
                 > ✓ </button>
               </div>
-            )
+            );
           })}
         </div>
       )}
 
       {/* --- 확대 모달 (저장 버튼 포함) --- */}
       {selectedImage && !isCompareMode && (
-        <div 
-          className="fixed inset-0 z-[200] flex items-center justify-center bg-black/90 backdrop-blur-md p-4"
-          onClick={() => setSelectedImage(null)}
-        >
-          <div className="relative max-w-lg w-full animate-in zoom-in-95 duration-300" onClick={(e) => e.stopPropagation()}>
-            <img src={selectedImage} className="w-full h-auto rounded-3xl shadow-2xl" alt="Zoom" />
-            <div className="mt-4 flex gap-3">
+        <div className="fixed inset-0 z-[500] flex items-center justify-center bg-black/90 backdrop-blur-md p-4" onClick={() => setSelectedImage(null)}>
+          <div className="relative max-w-lg w-full" onClick={(e) => e.stopPropagation()}>
+            <img src={selectedImage} className="w-full h-auto max-h-[70vh] object-contain rounded-3xl shadow-2xl" alt="Zoom" />
+            <div className="mt-6 flex gap-3">
               <button 
-                onClick={(e) => handleDownload(e, selectedImage)}
-                className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all shadow-lg"
+                onClick={(e) => handleDownload(e, selectedImage, 'fitting-zoom.png')} 
+                className="flex-1 py-4 bg-blue-600 text-white rounded-2xl font-bold shadow-lg hover:bg-blue-700 transition-colors"
               >
-                이미지 저장하기 💾
+                저장하기 💾
               </button>
-              <button 
-                onClick={() => setSelectedImage(null)}
-                className="px-6 py-3 bg-white/10 text-white rounded-xl font-bold hover:bg-white/20 border border-white/20"
-              >
-                닫기
-              </button>
+              <button onClick={() => setSelectedImage(null)} className="px-8 py-4 bg-white/10 text-white rounded-2xl font-bold hover:bg-white/20">닫기</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* --- 비교 모드 (개별 저장 버튼 포함) --- */}
+      {/* --- 비교 모드 (전체 화면) --- */}
       {isCompareMode && (
-        <div className={`fixed inset-0 z-[300] flex flex-col p-8 transition-colors ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-white text-gray-900'}`}>
-          <div className="flex justify-between items-center mb-8">
-            <h2 className="text-3xl font-black italic tracking-tighter text-blue-500">STYLE COMPARISON</h2>
+        <div className={`fixed inset-0 z-[600] flex flex-col p-8 ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-white text-gray-900'}`}>
+          <div className="flex justify-between items-center mb-6 w-full max-w-7xl mx-auto">
+            <h2 className="text-3xl font-black italic text-blue-500 tracking-tighter">STYLE COMPARISON</h2>
             <button 
-              onClick={() => setIsCompareMode(false)}
-              className="px-10 py-4 bg-gray-800 text-white dark:bg-white dark:text-black rounded-full font-black shadow-xl active:scale-95"
+              onClick={() => setIsCompareMode(false)} 
+              className="px-10 py-3 bg-gray-800 text-white rounded-full font-bold shadow-xl hover:bg-gray-700 transition-all"
             >
               EXIT
             </button>
           </div>
-          <div className="flex-1 flex gap-8 items-center justify-center max-w-6xl mx-auto w-full">
+          
+          <div className="flex-1 flex gap-8 items-center justify-center max-w-7xl mx-auto w-full overflow-hidden">
             {compareList.map((img, idx) => (
-              <div key={img.id} className="flex-1 flex flex-col gap-4 h-full animate-in slide-in-from-bottom duration-500">
-                <div className="relative flex-1 rounded-[40px] overflow-hidden border-4 border-blue-500 shadow-2xl bg-gray-100">
-                  <img src={img.url} className="w-full h-full object-cover" alt={`compare-${idx}`} />
-                  <div className="absolute top-6 left-6 bg-blue-600 text-white px-4 py-1 rounded-full font-bold text-sm">
-                    STYLE {idx + 1}
-                  </div>
+              <div key={img.id} className="flex-1 flex flex-col gap-4 h-full max-h-[85vh]">
+                <div className="flex-1 min-h-0 rounded-[40px] overflow-hidden border-4 border-blue-500 bg-gray-50 shadow-2xl relative">
+                  <img src={img.url} className="w-full h-full object-contain" alt={`compare-${idx}`} />
+                  <div className="absolute top-4 left-4 bg-blue-600 text-white px-4 py-1 rounded-full text-xs font-bold">STYLE 0{idx + 1}</div>
                 </div>
                 <button 
                   onClick={(e) => handleDownload(e, img.url, `style-0${idx+1}.png`)}
-                  className="w-full py-4 bg-blue-500/10 text-blue-500 border-2 border-blue-500/30 rounded-2xl font-bold hover:bg-blue-500 hover:text-white transition-all"
+                  className="w-full py-5 bg-blue-600 text-white rounded-[20px] font-bold shadow-[0_10px_20px_rgba(37,99,235,0.3)] hover:bg-blue-700 transition-all active:scale-95"
                 >
-                  이 스타일 저장
+                  📥 이 스타일 저장
                 </button>
               </div>
             ))}
@@ -141,5 +162,5 @@ export default function Gallery() {
         </div>
       )}
     </div>
-  )
+  );
 }
