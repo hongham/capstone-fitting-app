@@ -4,7 +4,7 @@ import AvatarScene from './components/avatar/AvatarScene'
 import InputForm from './components/ui/InputForm'
 import PromptPanel from './components/ui/PromptPanel'
 import Gallery from './components/ui/Gallery'
-import { generateImage } from './api/generate'
+import { generateImage } from './api/generate' // 1. 주석 해제하여 C 친구 로직 활성화
 
 function App() {
   const sceneRef = useRef()
@@ -13,23 +13,23 @@ function App() {
   const handleGenerate = async (prompt) => {
     setLoading(true)
     try {
-      // 1. 아바타 씬 캡처 (A 친구 로직 적용)
+      // 1. 아바타 씬 캡처 (A 친구 모듈)
       const poseImage = sceneRef.current?.capture()
       if (!poseImage) {
         console.warn('Scene not ready')
         return
       }
 
-      // 2. AI 이미지 생성 요청 (C 친구 API 연동)
+      // 2. AI 이미지 생성 API 호출 (C 친구 모듈 실제 연결)
       const result = await generateImage(poseImage, prompt);
       
-      // 3. 결과 갤러리에 추가
+      // 3. 결과물 갤러리에 추가
       if (result) {
         addGeneratedImage(result);
       }
     } catch (err) {
-      console.error('생성 실패:', err)
-      alert("이미지 생성 중 오류가 발생했습니다.")
+      console.error('피팅 생성 실패:', err)
+      alert("이미지 생성 중 오류가 발생했습니다. API 토큰을 확인해주세요.")
     } finally {
       setLoading(false)
     }
@@ -40,7 +40,7 @@ function App() {
       isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'
     }`}>
       
-      {/* 좌측 패널 (B님 UI) */}
+      {/* 좌측 패널: 설정 및 프롬프트 (B님 UI) */}
       <div className={`w-1/3 p-6 border-r overflow-y-auto z-10 transition-colors ${
         isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
       }`}>
@@ -49,12 +49,12 @@ function App() {
         <PromptPanel onGenerate={handleGenerate} />
       </div>
 
-      {/* 중앙 3D 씬 (A님 로직) */}
-      <div className="w-1/3 relative z-0">
+      {/* 중앙 패널: 3D 아바타 (A님 로직) */}
+      <div className="flex-1 relative bg-gray-100 z-0 h-full">
         <AvatarScene ref={sceneRef} metrics={metrics} pose={currentPose} />
       </div>
 
-      {/* 우측 갤러리 패널 (B님 UI) */}
+      {/* 우측 패널: 결과 갤러리 (B님 UI) */}
       <div className={`w-1/3 p-6 border-l overflow-y-auto relative z-30 transition-colors ${
         isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
       }`}>
@@ -62,7 +62,7 @@ function App() {
         <Gallery />
       </div>
 
-      {/* 다크모드 버튼 (B님 UI) */}
+      {/* 다크모드 토글 버튼 */}
       <button 
         onClick={(e) => {
           e.stopPropagation();
