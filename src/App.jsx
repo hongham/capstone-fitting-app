@@ -4,6 +4,7 @@ import AvatarScene from './components/avatar/AvatarScene'
 import InputForm from './components/ui/InputForm'
 import PromptPanel from './components/ui/PromptPanel'
 import Gallery from './components/ui/Gallery'
+import { generateImage } from './api/generate'
 
 function App() {
   const sceneRef = useRef()
@@ -12,11 +13,23 @@ function App() {
   const handleGenerate = async (prompt) => {
     setLoading(true)
     try {
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      // 1. 아바타 씬 캡처 (A 친구 로직 적용)
       const poseImage = sceneRef.current?.capture()
-      if (poseImage) addGeneratedImage(poseImage)
+      if (!poseImage) {
+        console.warn('Scene not ready')
+        return
+      }
+
+      // 2. AI 이미지 생성 요청 (C 친구 API 연동)
+      const result = await generateImage(poseImage, prompt);
+      
+      // 3. 결과 갤러리에 추가
+      if (result) {
+        addGeneratedImage(result);
+      }
     } catch (err) {
-      console.error(err)
+      console.error('생성 실패:', err)
+      alert("이미지 생성 중 오류가 발생했습니다.")
     } finally {
       setLoading(false)
     }
@@ -27,7 +40,7 @@ function App() {
       isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'
     }`}>
       
-      {/* 좌측 패널 */}
+      {/* 좌측 패널 (B님 UI) */}
       <div className={`w-1/3 p-6 border-r overflow-y-auto z-10 transition-colors ${
         isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
       }`}>
@@ -36,19 +49,20 @@ function App() {
         <PromptPanel onGenerate={handleGenerate} />
       </div>
 
-      {/* 중앙 3D 씬 */}
+      {/* 중앙 3D 씬 (A님 로직) */}
       <div className="w-1/3 relative z-0">
         <AvatarScene ref={sceneRef} metrics={metrics} pose={currentPose} />
       </div>
 
-      {/* 우측 갤러리 패널: z-index와 relative를 확실히 부여 */}
+      {/* 우측 갤러리 패널 (B님 UI) */}
       <div className={`w-1/3 p-6 border-l overflow-y-auto relative z-30 transition-colors ${
         isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
       }`}>
+        <h2 className="text-xl font-bold mb-6 text-blue-500 uppercase tracking-widest border-b pb-2">Fitting Gallery</h2>
         <Gallery />
       </div>
 
-      {/* 다크모드 버튼: fixed 위치와 높은 z-index로 독립 배치 */}
+      {/* 다크모드 버튼 (B님 UI) */}
       <button 
         onClick={(e) => {
           e.stopPropagation();
