@@ -1,23 +1,13 @@
 import { Canvas } from '@react-three/fiber'
-import { OrbitControls, Environment } from '@react-three/drei'
+import { OrbitControls } from '@react-three/drei'
 import { Suspense, forwardRef, useRef, useImperativeHandle } from 'react'
 import Avatar from './Avatar'
 import CaptureController from './CaptureController'
 
-/**
- * AvatarScene
- *
- * Props:
- *   - metrics: { height, weight, chest, waist, hip }
- *   - pose: string ('idle' | 'tpose' | 'walking' | ...)
- *
- * Ref methods:
- *   - capture(): string (base64 PNG)
- */
 const AvatarScene = forwardRef(({ metrics, pose }, ref) => {
   const captureRef = useRef()
 
-  // 외부 ref → 내부 captureRef로 위임
+  // 캡처 기능 위임
   useImperativeHandle(ref, () => ({
     capture: () => captureRef.current?.capture(),
   }))
@@ -25,36 +15,35 @@ const AvatarScene = forwardRef(({ metrics, pose }, ref) => {
   return (
     <Canvas
       camera={{ position: [0, 1.5, 3], fov: 50 }}
-      gl={{ preserveDrawingBuffer: true }}  // 캡처 위해 필수
+      gl={{ 
+        preserveDrawingBuffer: true, // 캡처 시 이미지 데이터 보존
+        antialias: true 
+      }}
+      className="w-full h-full"
     >
-      {/* 조명 */}
-      <ambientLight intensity={0.5} />
-      <directionalLight position={[5, 5, 5]} intensity={0.8} />
-      <directionalLight position={[-5, 3, 2]} intensity={0.3} />
+      {/* 1. 배경을 순수 흰색으로 고정 (AI 인식률 급상승) */}
+      <color attach="background" args={['#ffffff']} />
 
-      {/* 환경 (선택적 - 더 자연스러운 조명) */}
-      {/* <Environment preset="studio" /> */}
+      {/* 2. 조명 강화 (아바타가 선명해야 AI가 옷을 잘 입힘) */}
+      <ambientLight intensity={1.5} /> 
+      <directionalLight position={[5, 5, 5]} intensity={2.0} />
+      <directionalLight position={[-5, 3, 2]} intensity={1.0} />
+      <pointLight position={[0, 2, 2]} intensity={1.0} />
 
-      {/* 바닥 */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} receiveShadow>
-        <planeGeometry args={[10, 10]} />
-        <meshStandardMaterial color="#e5e7eb" />
-      </mesh>
+      {/* 3. 바닥 제거 (바닥 그림자나 색상이 AI 방해 요소가 될 수 있음) */}
 
-      {/* 아바타 */}
       <Suspense fallback={null}>
-        <Avatar metrics={metrics} pose={pose} />
+        {/* metrics가 있을 때만 아바타 렌더링 */}
+        {metrics && <Avatar metrics={metrics} pose={pose} />}
       </Suspense>
 
-      {/* 마우스 컨트롤 */}
       <OrbitControls target={[0, 1, 0]} />
 
-      {/* 캡처 컨트롤러 (내부 전용) */}
+      {/* 캡처 컨트롤러 */}
       <CaptureController ref={captureRef} />
     </Canvas>
   )
 })
 
 AvatarScene.displayName = 'AvatarScene'
-
 export default AvatarScene
