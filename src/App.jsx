@@ -4,7 +4,27 @@ import AvatarScene from './components/avatar/AvatarScene'
 import InputForm from './components/ui/InputForm'
 import PromptPanel from './components/ui/PromptPanel'
 import Gallery from './components/ui/Gallery'
-// import { generateImage } from './api/generate'  // C 모듈 완성 후 활성화
+import { generateImage } from './api/generate'
+
+const handleGenerate = async (prompt) => {
+  console.log("handleGenerate 호출됨, prompt:", prompt) // 추가
+  setLoading(true)
+  try {
+    let poseImage = sceneRef.current?.capture()
+    console.log("poseImage:", poseImage) // 추가
+
+    if (!poseImage) {
+      poseImage = "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=512"
+    }
+
+    const result = await generateImage(poseImage, prompt)
+    addGeneratedImage(result)
+  } catch (err) {
+    console.error('Generation failed:', err)
+  } finally {
+    setLoading(false)
+  }
+}
 
 function App() {
   const sceneRef = useRef()
@@ -13,19 +33,15 @@ function App() {
   const handleGenerate = async (prompt) => {
     setLoading(true)
     try {
-      // 1. A 모듈: 현재 화면 캡처
-      const poseImage = sceneRef.current?.capture()
+      let poseImage = sceneRef.current?.capture()
+
+      // 아바타 미완성이면 임시 이미지 사용
       if (!poseImage) {
-        console.warn('Scene not ready')
-        return
+        poseImage = "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=512"
       }
 
-      // 2. C 모듈: API 호출 (구현 후 주석 해제)
-      // const result = await generateImage(poseImage, prompt)
-      // addGeneratedImage(result)
-
-      // 임시: 캡처된 이미지를 갤러리에 그대로 추가
-      addGeneratedImage(poseImage)
+      const result = await generateImage(poseImage, prompt)
+      addGeneratedImage(result)
     } catch (err) {
       console.error('Generation failed:', err)
     } finally {
