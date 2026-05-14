@@ -1,13 +1,31 @@
-// 캐시 저장소
+import { PROMPT_LIBRARY } from './promptLibrary'
+
 const cache = new Map();
+
+async function translateToEnglish(text) {
+  if (/^[a-zA-Z\s,.\-]+$/.test(text)) return text;
+
+  try {
+    const res = await fetch(
+      `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=ko|en`
+    );
+    const data = await res.json();
+    console.log("번역 결과:", data.responseData.translatedText);
+    return data.responseData.translatedText;
+  } catch (err) {
+    console.warn("번역 실패, 원문 사용:", text);
+    return text;
+  }
+}
 
 export async function generateImage(poseImage, prompt, options = {}) {
   const { seed = 42 } = options;
 
-  // 캐시 키 생성 (프롬프트 + 시드 조합)
-  const cacheKey = `${prompt}_${seed}`;
+  const englishPrompt = PROMPT_LIBRARY[prompt] ?? await translateToEnglish(prompt);
+  console.log("최종 영어 프롬프트:", englishPrompt);
 
-  // 캐시에 있으면 바로 반환
+  const cacheKey = `${englishPrompt}_${seed}`;
+
   if (cache.has(cacheKey)) {
     console.log("캐시 히트:", cacheKey);
     return cache.get(cacheKey);
@@ -20,10 +38,10 @@ export async function generateImage(poseImage, prompt, options = {}) {
       version: "0304f7f774ba7341ef754231f794b1ba3d129e3c46af3022241325ae0c50fb99",
       input: {
         image: poseImage,
-        prompt: `a mannequin wearing ${prompt}, pure white background, full body, front view, studio lighting, photorealistic, high quality`,
+        prompt: `a mannequin wearing ${englishPrompt}, pure white background, full body, front view, studio lighting, photorealistic, high quality`,
         num_samples: "1",
         image_resolution: "512",
-        ddim_steps: 30,
+        ddim_steps: 20,
         scale: 7,
         seed: seed,
         eta: 0,
@@ -42,7 +60,6 @@ export async function generateImage(poseImage, prompt, options = {}) {
 
   const result = await pollResult(prediction.id);
 
-  // 결과 캐시에 저장
   cache.set(cacheKey, result);
   console.log("캐시 저장:", cacheKey);
 
@@ -63,7 +80,10 @@ async function pollResult(id) {
       continue;
     }
 
-    if (data.status === "succeeded") return data.output[0];
+    if (data.status === "succeeded") {
+      console.log("output 전체:", data.output)  // ← 여기!
+      return data.output[1];
+    }
     if (data.status === "failed") throw new Error("이미지 생성 실패");
 
     await new Promise(r => setTimeout(r, 10000));
