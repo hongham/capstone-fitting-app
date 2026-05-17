@@ -8,12 +8,14 @@ import { generateImage } from './api/generate'
 
 function App() {
   const sceneRef = useRef()
-  const { metrics, currentPose, addGeneratedImage, setLoading, isDarkMode, toggleDarkMode } = useStore()
+  // 1. store에서 gender(성별) 값을 가져옵니다. 
+  // (store에 gender가 없다면 metrics 내부에 있거나 별도 상태로 관리되어야 합니다)
+  const { metrics, currentPose, addGeneratedImage, setLoading, isDarkMode, toggleDarkMode, gender } = useStore()
 
   const handleGenerate = async (prompt) => {
     setLoading(true)
     try {
-      // 1. 아바타 씬 캡처 (질문자님 로직 복구)
+      // 1. 아바타 씬 캡처
       let poseImage = sceneRef.current?.capture()
       
       if (!poseImage) {
@@ -39,7 +41,7 @@ function App() {
       isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'
     }`}>
       
-      {/* 좌측 패널 (질문자님의 다크모드 UI 유지) */}
+      {/* 좌측 패널 */}
       <div className={`w-1/3 p-6 border-r overflow-y-auto z-10 transition-colors ${
         isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
       }`}>
@@ -50,7 +52,13 @@ function App() {
 
       {/* 중앙 패널 (3D 아바타) */}
       <div className="flex-1 relative bg-gray-100 z-0 h-full">
-        <AvatarScene ref={sceneRef} metrics={metrics} pose={currentPose} />
+        {/* [중요] AvatarScene에 gender props를 전달합니다. */}
+        <AvatarScene 
+          ref={sceneRef} 
+          metrics={metrics} 
+          pose={currentPose} 
+          gender={gender} 
+        />
       </div>
 
       {/* 우측 패널 (갤러리) */}
