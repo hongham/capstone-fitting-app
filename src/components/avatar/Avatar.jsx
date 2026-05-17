@@ -1,108 +1,60 @@
+import React, { useEffect, useMemo } from 'react'
 import { useGLTF } from '@react-three/drei'
-import { useEffect, useLayoutEffect, useRef } from 'react'
-import { Box3, Vector3 } from 'three'
-import { applyMetrics } from './applyMetrics'
-import { findBone } from './boneMap'
-import { getPosePreset } from './poses'
+import { useStore } from '../../store'
 
-/**
- * Avatar
- * - GLB 파일을 로드하고 신체지수에 따라 본을 변형
- *
- * 1주차 확인:
- *   1. public/avatars/male.glb 파일을 로드한다.
- *   2. 브라우저 콘솔에서 본 구조를 확인한다.
- *   3. 실제 본 이름이 다르면 boneMap.js를 업데이트한다.
- */
-const GLB_PATH = '/avatars/male.glb'
-const TARGET_HEIGHT = 1.7
+export default function Avatar({ url, metrics, pose }) {
+  const { scene } = useGLTF(url)
+  const gender = useStore((state) => state.gender)
 
-export default function Avatar({ metrics, pose }) {
-  const groupRef = useRef()
-  const poseGroupRef = useRef()
-  const initialBoneRotationsRef = useRef(new Map())
-  const { scene } = useGLTF(GLB_PATH)
-
-  // GLB 원점과 크기가 제각각일 수 있으므로 화면 중앙에 맞춘다.
-  useLayoutEffect(() => {
-    if (!scene || !groupRef.current) return
-
-    scene.updateMatrixWorld(true)
-    const box = new Box3().setFromObject(scene)
-    if (box.isEmpty()) return
-
-    const center = box.getCenter(new Vector3())
-    const size = box.getSize(new Vector3())
-    const fitScale = size.y > 0 ? TARGET_HEIGHT / size.y : 1
-
-    groupRef.current.scale.setScalar(fitScale)
-    groupRef.current.position.set(
-      -center.x * fitScale,
-      -box.min.y * fitScale,
-      -center.z * fitScale,
-    )
+  const bodyMesh = useMemo(() => {
+    let foundMesh = null;
+    scene.traverse((node) => {
+      if (node.isMesh && node.morphTargetDictionary) foundMesh = node;
+    });
+    return foundMesh;
   }, [scene])
 
-  // 본 구조 디버깅 (1주차 - 한 번 실행해서 본 이름 확인)
+  // 1. 키 조절 (스케일)
   useEffect(() => {
-    if (!scene) return
-    console.log('=== Avatar bones ===')
-    let boneCount = 0
-    const initialRotations = new Map()
-    scene.traverse((obj) => {
-      if (obj.isBone) {
-        boneCount += 1
-        initialRotations.set(obj, obj.rotation.clone())
-        console.log(`Bone: ${obj.name}`)
+    if (!scene || !metrics.height) return
+    const baseHeight = gender === 'male' ? 175 : 160;
+    const ratio = metrics.height / baseHeight;
+    // Y축(키) 변화를 정직하게 적용
+    scene.scale.set(1 + (ratio - 1) * 0.3, ratio, 1 + (ratio - 1) * 0.3);
+  }, [metrics.height, scene, gender])
+
+  // 2. 셰이프키 조절 (어깨 가동 범위 확장)
+  useEffect(() => {
+    if (!bodyMesh || !metrics) return
+    const dict = bodyMesh.morphTargetDictionary
+    const influences = bodyMesh.morphTargetInfluences
+
+    Object.keys(dict).forEach((key) => {
+      const trimmedKey = key.trim();
+      const index = dict[key];
+
+      // 어깨 (기준: 남 45 / 여 38)
+      // 분모를 15로 설정하여 45+15=60cm 일 때 최대 벌어짐이 되게 수정
+      const baseShoulder = gender === 'male' ? 45 : 38;
+      if (trimmedKey === 'shoulder_wide') {
+        influences[index] = metrics.shoulder > baseShoulder ? Math.min((metrics.shoulder - baseShoulder) / 15, 1) : 0;
       }
-    })
-    initialBoneRotationsRef.current = initialRotations
-    if (boneCount === 0) {
-      console.warn('No bones found in male.glb. Body scaling and pose animation need a rigged GLB.')
-    }
-  }, [scene])
-
-  // 신체지수 적용
-  useEffect(() => {
-    if (scene && metrics) {
-      applyMetrics(scene, metrics)
-    }
-  }, [scene, metrics])
-
-  // 포즈 적용 (2주차에 구현)
-  useEffect(() => {
-    if (!scene) return
-
-    const preset = getPosePreset(pose)
-    const fallback = preset.fallback || {}
-    const fallbackRotation = fallback.rotation || [0, 0, 0]
-    const fallbackPosition = fallback.position || [0, 0, 0]
-
-    if (poseGroupRef.current) {
-      poseGroupRef.current.rotation.set(...fallbackRotation)
-      poseGroupRef.current.position.set(...fallbackPosition)
-    }
-
-    initialBoneRotationsRef.current.forEach((rotation, bone) => {
-      bone.rotation.copy(rotation)
-    })
-
-    Object.entries(preset.boneRotations || {}).forEach(([boneKey, rotation]) => {
-      const bone = findBone(scene, boneKey)
-      if (bone) {
-        bone.rotation.set(...rotation)
+      if (trimmedKey === 'shoulder_narrow') {
+        influences[index] = metrics.shoulder < baseShoulder ? Math.min((baseShoulder - metrics.shoulder) / 15, 1) : 0;
       }
-    })
-  }, [scene, pose])
 
-  return (
-    <group ref={groupRef}>
-      <group ref={poseGroupRef}>
-        <primitive object={scene} />
-      </group>
-    </group>
-  )
+      // 가슴/허리/골반 (이 부위들도 변화가 너무 일찍 멈추면 분모 숫자를 더 키우면 됩니다)
+      if (trimmedKey === 'chest_large') influences[index] = metrics.chest > 90 ? (metrics.chest - 90) / 15 : 0;
+      if (trimmedKey === 'chest_small') influences[index] = metrics.chest < 85 ? (85 - metrics.chest) / 15 : 0;
+      if (trimmedKey === 'waist_large') influences[index] = metrics.waist > 80 ? (metrics.waist - 80) / 15 : 0;
+      if (trimmedKey === 'waist_small') influences[index] = metrics.waist < 75 ? (75 - metrics.waist) / 15 : 0;
+      if (trimmedKey === 'hip_large') influences[index] = metrics.hip > 95 ? (metrics.hip - 95) / 15 : 0;
+      if (trimmedKey === 'hip_small') influences[index] = metrics.hip < 90 ? (90 - metrics.hip) / 15 : 0;
+    })
+  }, [metrics, bodyMesh, gender])
+
+  return <primitive object={scene} />
 }
 
-// 미리 로딩으로 성능 향상
-useGLTF.preload(GLB_PATH)
+useGLTF.preload('/avatars/female.glb')
+useGLTF.preload('/avatars/male.glb')

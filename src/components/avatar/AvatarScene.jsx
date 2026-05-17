@@ -4,60 +4,45 @@ import { Suspense, forwardRef, useRef, useImperativeHandle } from 'react'
 import Avatar from './Avatar'
 import CaptureController from './CaptureController'
 
-/**
- * AvatarScene
- *
- * Props:
- *   - metrics: { height, weight, chest, waist, hip }
- *   - pose: string ('idle' | 'tpose' | 'walking' | ...)
- *
- * Ref methods:
- *   - capture(): string (base64 PNG)
- */
-const AvatarScene = forwardRef(({ metrics, pose }, ref) => {
+// gender props 추가
+const AvatarScene = forwardRef(({ metrics, pose, gender = 'female' }, ref) => {
   const captureRef = useRef()
 
-  // 외부 ref → 내부 captureRef로 위임
   useImperativeHandle(ref, () => ({
-    capture: () => captureRef.current?.capture(),
+    capture: () => {
+      return captureRef.current?.capture();
+    },
   }))
+
+  const modelUrl = gender === 'male' ? '/avatars/male.glb' : '/avatars/female.glb';
 
   return (
     <Canvas
-      shadows
-      dpr={[1, 2]}
-      style={{ width: '100%', height: '100%' }}
-      camera={{ position: [0, 1.5, 3], fov: 50 }}
-      gl={{ preserveDrawingBuffer: true }}  // 캡처 위해 필수
+      camera={{ position: [0, 1.2, 2.5], fov: 45 }}
+      gl={{ preserveDrawingBuffer: true, antialias: true }}
+      className="w-full h-full"
     >
-      <color attach="background" args={['#f3f4f6']} />
+      <color attach="background" args={['#ffffff']} />
+      <ambientLight intensity={1.5} /> 
+      <directionalLight position={[5, 5, 5]} intensity={2.0} />
 
-      {/* 조명 */}
-      <ambientLight intensity={0.5} />
-      <directionalLight position={[5, 5, 5]} intensity={0.8} />
-      <directionalLight position={[-5, 3, 2]} intensity={0.3} />
-      <directionalLight position={[0, 5, -5]} intensity={0.4} />
-
-      {/* 바닥 */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.01, 0]} receiveShadow>
-        <planeGeometry args={[10, 10]} />
-        <meshStandardMaterial color="#e5e7eb" />
-      </mesh>
-
-      {/* 아바타 */}
       <Suspense fallback={null}>
-        <Avatar metrics={metrics} pose={pose} />
+        {/* gender={gender} 를 꼭 적어줘야 합니다! */}
+        {metrics && (
+          <Avatar 
+            url={modelUrl} 
+            metrics={metrics} 
+            pose={pose} 
+            gender={gender} 
+          />
+        )}
       </Suspense>
 
-      {/* 마우스 컨트롤 */}
-      <OrbitControls target={[0, 1, 0]} enablePan={false} minDistance={1.8} maxDistance={5} />
-
-      {/* 캡처 컨트롤러 (내부 전용) */}
+      <OrbitControls target={[0, 1, 0]} enableDamping={true} />
       <CaptureController ref={captureRef} />
     </Canvas>
   )
 })
 
 AvatarScene.displayName = 'AvatarScene'
-
 export default AvatarScene

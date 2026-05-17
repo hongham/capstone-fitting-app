@@ -1,109 +1,76 @@
+import React from 'react'
 import { useStore } from '../../store'
 import { POSES } from '../avatar/poses'
 
-/**
- * InputForm
- * - 신체지수 입력 (B 담당)
- *
- * TODO:
- *   - 더 예쁜 슬라이더로 교체
- *   - 입력 검증 (음수, 비현실적 값 방지)
- *   - 모바일 반응형
- */
 export default function InputForm() {
-  const { metrics, updateMetric, currentPose, setPose } = useStore()
+  const { gender, setGender, metrics, updateMetric, currentPose, setPose, isLoading } = useStore()
+
+  const metricFields = [
+    { id: 'height', label: '키', unit: 'cm', min: 150, max: 200 },
+    { id: 'shoulder', label: '어깨 너비', unit: 'cm', min: 30, max: 60 },
+    { id: 'chest', label: '가슴둘레', unit: 'cm', min: 70, max: 120 },
+    { id: 'waist', label: '허리둘레', unit: 'cm', min: 60, max: 110 },
+    { id: 'hip', label: '엉덩이둘레', unit: 'cm', min: 70, max: 120 },
+  ]
 
   return (
-    <div className="space-y-4 mb-6">
-      <h2 className="text-lg font-semibold">신체 정보</h2>
-
+    <div className="space-y-6 mb-8 p-4 bg-white rounded-2xl shadow-sm border border-gray-100">
+      {/* 성별 선택 */}
       <div>
-        <label className="block text-sm text-gray-600 mb-1">
-          키: {metrics.height} cm
-        </label>
-        <input
-          type="range"
-          min={150}
-          max={200}
-          value={metrics.height}
-          onChange={(e) => updateMetric('height', +e.target.value)}
-          className="w-full"
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm text-gray-600 mb-1">
-          몸무게: {metrics.weight} kg
-        </label>
-        <input
-          type="range"
-          min={40}
-          max={120}
-          value={metrics.weight}
-          onChange={(e) => updateMetric('weight', +e.target.value)}
-          className="w-full"
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm text-gray-600 mb-1">
-          가슴둘레: {metrics.chest} cm
-        </label>
-        <input
-          type="range"
-          min={70}
-          max={120}
-          value={metrics.chest}
-          onChange={(e) => updateMetric('chest', +e.target.value)}
-          className="w-full"
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm text-gray-600 mb-1">
-          허리둘레: {metrics.waist} cm
-        </label>
-        <input
-          type="range"
-          min={60}
-          max={110}
-          value={metrics.waist}
-          onChange={(e) => updateMetric('waist', +e.target.value)}
-          className="w-full"
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm text-gray-600 mb-1">
-          엉덩이둘레: {metrics.hip} cm
-        </label>
-        <input
-          type="range"
-          min={70}
-          max={120}
-          value={metrics.hip}
-          onChange={(e) => updateMetric('hip', +e.target.value)}
-          className="w-full"
-        />
-      </div>
-
-      <div>
-        <h3 className="text-sm font-semibold mt-4 mb-2">포즈 선택</h3>
-        <div className="flex flex-wrap gap-2">
-          {POSES.map((pose) => (
+        <h3 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">👤 성별 설정</h3>
+        <div className="flex gap-2">
+          {[{ id: 'male', name: '남성' }, { id: 'female', name: '여성' }].map((g) => (
             <button
-              key={pose.id}
-              onClick={() => setPose(pose.id)}
-              className={`px-3 py-1 rounded text-sm ${
-                currentPose === pose.id
-                  ? 'bg-blue-500 text-white'
-                  : 'bg-gray-200 text-gray-700'
+              key={g.id}
+              onClick={() => setGender(g.id)}
+              disabled={isLoading}
+              className={`flex-1 py-3 rounded-xl font-bold transition-all ${
+                gender === g.id ? 'bg-blue-600 text-white shadow-md' : 'bg-gray-50 text-gray-500 border'
               }`}
             >
-              {pose.name}
+              {g.name}
             </button>
           ))}
         </div>
+      </div>
+
+      {/* 신체 지수 조절 */}
+      <div className="space-y-6 pt-4 border-t border-gray-100">
+        <h2 className="text-lg font-bold text-gray-800">신체 정보 설정</h2>
+        {metricFields.map((field) => {
+          // 핵심: 현재 metrics에 값이 없으면 field의 기본 범위를 고려해 값을 강제 표시
+          const displayValue = metrics[field.id] !== undefined ? metrics[field.id] : 
+                               (field.id === 'shoulder' ? 45 : 
+                                field.id === 'height' ? 175 : 85);
+
+          return (
+            <div key={field.id} className="group">
+              <div className="flex justify-between items-center mb-2">
+                <label className="text-xs font-semibold text-gray-500">
+                  {field.label} ({field.unit})
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    value={displayValue}
+                    disabled={isLoading}
+                    onChange={(e) => updateMetric(field.id, parseInt(e.target.value) || 0)}
+                    className="w-16 px-2 py-1 text-right font-black text-blue-600 border rounded bg-gray-50 outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                  />
+                </div>
+              </div>
+              <input
+                type="range"
+                min={field.min}
+                max={field.max}
+                value={displayValue}
+                disabled={isLoading}
+                onChange={(e) => updateMetric(field.id, parseInt(e.target.value))}
+                className="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600 transition-all"
+              />
+            </div>
+          )
+        })}
       </div>
     </div>
   )

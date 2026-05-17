@@ -2,23 +2,24 @@ import { create } from 'zustand'
 
 /**
  * 전역 상태 관리 (Zustand)
- *
- * 사용 규칙:
- * - metrics: B가 쓰고, A가 읽음
- * - currentPose: B가 쓰고, A가 읽음
- * - generatedImages: C가 쓰고, B가 읽음
- * - isLoading: C가 쓰고, B가 읽음
  */
 export const useStore = create((set) => ({
+  // ===== 테마 설정 =====
+  isDarkMode: false,
+  toggleDarkMode: () => set((state) => ({ isDarkMode: !state.isDarkMode })),
+
+  // ===== 성별 설정 =====
+  gender: 'male', 
+  setGender: (gender) => set({ gender }),
+
   // ===== 신체지수 =====
   metrics: {
-    height: 175,    // cm
-    weight: 70,     // kg
-    chest: 92,      // cm
-    waist: 80,      // cm
-    hip: 95,        // cm
+    height: 182,
+    weight: 75,
+    chest: 92,
+    waist: 80,
+    hip: 95,
   },
-  setMetrics: (metrics) => set({ metrics }),
   updateMetric: (key, value) =>
     set((state) => ({
       metrics: { ...state.metrics, [key]: value }
@@ -33,12 +34,12 @@ export const useStore = create((set) => ({
   addGeneratedImage: (image) =>
     set((state) => ({
       generatedImages: [
-        ...state.generatedImages,
         {
           id: Date.now(),
           url: image,
           createdAt: new Date().toISOString(),
-        }
+        },
+        ...state.generatedImages,
       ]
     })),
   clearImages: () => set({ generatedImages: [] }),
