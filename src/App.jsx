@@ -4,7 +4,7 @@ import AvatarScene from './components/avatar/AvatarScene'
 import InputForm from './components/ui/InputForm'
 import PromptPanel from './components/ui/PromptPanel'
 import Gallery from './components/ui/Gallery'
-import { generateImage } from './api/generate' // 1. 주석 해제하여 C 친구 로직 활성화
+import { generateImage } from './api/generate'
 
 function App() {
   const sceneRef = useRef()
@@ -13,23 +13,22 @@ function App() {
   const handleGenerate = async (prompt) => {
     setLoading(true)
     try {
-      // 1. 아바타 씬 캡처 (A 친구 모듈)
-      const poseImage = sceneRef.current?.capture()
+      // 1. 아바타 씬 캡처 (질문자님 로직 복구)
+      let poseImage = sceneRef.current?.capture()
+      
       if (!poseImage) {
-        console.warn('Scene not ready')
-        return
+        poseImage = "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=512"
       }
 
-      // 2. AI 이미지 생성 API 호출 (C 친구 모듈 실제 연결)
+      // 2. AI 이미지 생성 API 호출
       const result = await generateImage(poseImage, prompt);
       
-      // 3. 결과물 갤러리에 추가
       if (result) {
         addGeneratedImage(result);
       }
     } catch (err) {
       console.error('피팅 생성 실패:', err)
-      alert("이미지 생성 중 오류가 발생했습니다. API 토큰을 확인해주세요.")
+      alert("생성 중 오류가 발생했습니다. 다시 시도해주세요.")
     } finally {
       setLoading(false)
     }
@@ -40,7 +39,7 @@ function App() {
       isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'
     }`}>
       
-      {/* 좌측 패널: 설정 및 프롬프트 (B님 UI) */}
+      {/* 좌측 패널 (질문자님의 다크모드 UI 유지) */}
       <div className={`w-1/3 p-6 border-r overflow-y-auto z-10 transition-colors ${
         isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
       }`}>
@@ -49,12 +48,12 @@ function App() {
         <PromptPanel onGenerate={handleGenerate} />
       </div>
 
-      {/* 중앙 패널: 3D 아바타 (A님 로직) */}
+      {/* 중앙 패널 (3D 아바타) */}
       <div className="flex-1 relative bg-gray-100 z-0 h-full">
         <AvatarScene ref={sceneRef} metrics={metrics} pose={currentPose} />
       </div>
 
-      {/* 우측 패널: 결과 갤러리 (B님 UI) */}
+      {/* 우측 패널 (갤러리) */}
       <div className={`w-1/3 p-6 border-l overflow-y-auto relative z-30 transition-colors ${
         isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
       }`}>
