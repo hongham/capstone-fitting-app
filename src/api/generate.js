@@ -1,12 +1,5 @@
 // src/api/generate.js
-
-let PROMPT_LIBRARY = {};
-try {
-  const lib = require('./promptLibrary');
-  PROMPT_LIBRARY = lib.PROMPT_LIBRARY || {};
-} catch (e) {
-  console.warn("promptLibrary를 찾을 수 없어 기본 번역 API만 사용합니다.");
-}
+import { PROMPT_LIBRARY } from './promptLibrary'
 
 // 번역 함수 (MyMemory API 사용)
 async function translateToEnglish(text) {

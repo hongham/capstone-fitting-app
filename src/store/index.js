@@ -16,6 +16,7 @@ export const useStore = create((set) => ({
   metrics: {
     height: 182,
     weight: 75,
+    shoulder: 45,
     chest: 92,
     waist: 80,
     hip: 95,
