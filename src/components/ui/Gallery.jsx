@@ -17,19 +17,14 @@ export default function Gallery() {
       img.src = url;
 
       img.onload = () => {
-        // 가상 도화지(Canvas) 생성
         const canvas = document.createElement("canvas");
         canvas.width = img.width;
         canvas.height = img.height;
         const ctx = canvas.getContext("2d");
-        
-        // 도화지에 원본 이미지를 그림
         ctx.drawImage(img, 0, 0);
 
-        // 도화지 내용을 내 로컬 데이터(PNG)로 변환 (CORS 우회 핵심)
         const dataUrl = canvas.toDataURL("image/png");
         
-        // 가상 링크를 만들어 즉시 다운로드 실행
         const link = document.createElement("a");
         link.href = dataUrl;
         link.download = filename;
@@ -39,7 +34,6 @@ export default function Gallery() {
       };
 
       img.onerror = () => {
-        // 캔버스 방식도 실패할 경우 (최후의 보루)
         window.open(url, '_blank');
       };
     } catch (error) {
@@ -87,18 +81,18 @@ export default function Gallery() {
           <p className="text-gray-400 text-sm italic">피팅 결과를 생성해 보세요 ✨</p>
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-4 pb-20">
+        <div className="grid grid-cols-2 gap-4 pb-20 overflow-y-auto">
           {generatedImages.map((img) => {
             const isSelected = compareList.some(item => item.id === img.id);
             return (
               <div
                 key={img.id}
-                className={`group relative aspect-[3/4] rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 ${
+                className={`group relative w-full aspect-square rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 ${
                   isSelected ? 'ring-4 ring-blue-500 scale-95' : 'hover:shadow-xl'
                 }`}
                 onClick={() => setSelectedImage(img.url)}
               >
-                <img src={img.url} className="w-full h-full object-cover" alt="result" />
+                <img src={img.url} className="w-full h-full object-cover block" alt="result" />
                 <button
                   type="button"
                   onClick={(e) => toggleCompare(e, img)}
@@ -112,12 +106,17 @@ export default function Gallery() {
         </div>
       )}
 
-      {/* --- 확대 모달 (저장 버튼 포함) --- */}
+      {/* --- 확대 모달 (정사각형 비율 고정 수정) --- */}
       {selectedImage && !isCompareMode && (
         <div className="fixed inset-0 z-[500] flex items-center justify-center bg-black/90 backdrop-blur-md p-4" onClick={() => setSelectedImage(null)}>
-          <div className="relative max-w-lg w-full" onClick={(e) => e.stopPropagation()}>
-            <img src={selectedImage} className="w-full h-auto max-h-[70vh] object-contain rounded-3xl shadow-2xl" alt="Zoom" />
-            <div className="mt-6 flex gap-3">
+          <div className="relative max-w-lg w-full flex flex-col items-center" onClick={(e) => e.stopPropagation()}>
+            
+            {/* 🛠️ [여기 수정 1] aspect-square와 object-contain을 주어 모달창에서도 무조건 1:1 정사각형 유지 */}
+            <div className="w-full aspect-square bg-gray-900 rounded-3xl overflow-hidden shadow-2xl flex items-center justify-center">
+              <img src={selectedImage} className="w-full h-full object-contain" alt="Zoom" />
+            </div>
+
+            <div className="mt-6 flex gap-3 w-full max-w-md">
               <button 
                 onClick={(e) => handleDownload(e, selectedImage, 'fitting-zoom.png')} 
                 className="flex-1 py-4 bg-blue-600 text-white rounded-2xl font-bold shadow-lg hover:bg-blue-700 transition-colors"
@@ -130,7 +129,7 @@ export default function Gallery() {
         </div>
       )}
 
-      {/* --- 비교 모드 (전체 화면) --- */}
+      {/* --- 비교 모드 (정사각형 비율 고정 수정) --- */}
       {isCompareMode && (
         <div className={`fixed inset-0 z-[600] flex flex-col p-8 ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-white text-gray-900'}`}>
           <div className="flex justify-between items-center mb-6 w-full max-w-7xl mx-auto">
@@ -145,14 +144,17 @@ export default function Gallery() {
           
           <div className="flex-1 flex gap-8 items-center justify-center max-w-7xl mx-auto w-full overflow-hidden">
             {compareList.map((img, idx) => (
-              <div key={img.id} className="flex-1 flex flex-col gap-4 h-full max-h-[85vh]">
-                <div className="flex-1 min-h-0 rounded-[40px] overflow-hidden border-4 border-blue-500 bg-gray-50 shadow-2xl relative">
+              <div key={img.id} className="flex-1 flex flex-col gap-4 h-full max-h-[80vh] items-center justify-center">
+                
+                {/* 🛠️ [여기 수정 2] 비교 모드 카드 프레임을 가로 세로 1:1 정방형 박스로 제한하고 강제 늘어남 현상 제거 */}
+                <div className="w-full aspect-square max-w-[60vh] rounded-[40px] overflow-hidden border-4 border-blue-500 bg-gray-900 shadow-2xl relative flex items-center justify-center">
                   <img src={img.url} className="w-full h-full object-contain" alt={`compare-${idx}`} />
                   <div className="absolute top-4 left-4 bg-blue-600 text-white px-4 py-1 rounded-full text-xs font-bold">STYLE 0{idx + 1}</div>
                 </div>
+
                 <button 
                   onClick={(e) => handleDownload(e, img.url, `style-0${idx+1}.png`)}
-                  className="w-full py-5 bg-blue-600 text-white rounded-[20px] font-bold shadow-[0_10px_20px_rgba(37,99,235,0.3)] hover:bg-blue-700 transition-all active:scale-95"
+                  className="w-full max-w-[60vh] py-5 bg-blue-600 text-white rounded-[20px] font-bold shadow-[0_10px_20px_rgba(37,99,235,0.3)] hover:bg-blue-700 transition-all active:scale-95"
                 >
                   📥 이 스타일 저장
                 </button>

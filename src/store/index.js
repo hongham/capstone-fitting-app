@@ -1,8 +1,5 @@
 import { create } from 'zustand'
 
-/**
- * 전역 상태 관리 (Zustand)
- */
 export const useStore = create((set) => ({
   // ===== 테마 설정 =====
   isDarkMode: false,
@@ -14,20 +11,24 @@ export const useStore = create((set) => ({
 
   // ===== 신체지수 =====
   metrics: {
-    height: 182,
-    weight: 75,
-    chest: 92,
-    waist: 80,
+    height: 175,
+    shoulder: 45,
+    chest: 95,
+    waist: 85,
     hip: 95,
   },
-  updateMetric: (key, value) =>
+  updateMetric: (id, value) =>
     set((state) => ({
-      metrics: { ...state.metrics, [key]: value }
+      metrics: { ...state.metrics, [id]: value }
     })),
+
+  // ===== 🛠️ [핵심 추가] 프론트-백엔드 직통 프롬프트 파이프라인 =====
+  currentPrompt: '',
+  setPrompt: (currentPrompt) => set({ currentPrompt }),
 
   // ===== 현재 포즈 =====
   currentPose: 'idle',
-  setPose: (pose) => set({ currentPose: pose }),
+  setPose: (poseId) => set({ currentPose: poseId }),
 
   // ===== 생성 결과 =====
   generatedImages: [],
@@ -46,5 +47,5 @@ export const useStore = create((set) => ({
 
   // ===== 로딩 상태 =====
   isLoading: false,
-  setLoading: (isLoading) => set({ isLoading }),
+  setLoading: (loading) => set({ isLoading: loading }),
 }))

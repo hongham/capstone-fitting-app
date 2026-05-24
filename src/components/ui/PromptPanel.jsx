@@ -19,7 +19,10 @@ const LOADING_STEPS = [
 export default function PromptPanel({ onGenerate }) {
   const [prompt, setPrompt] = useState('')
   const [stepIndex, setStepIndex] = useState(0)
+  
+  // 💡 Zustand 전역 스토어에서 로딩 상태와 프롬프트 저장 함수 가져오기
   const isLoading = useStore((state) => state.isLoading)
+  const setGlobalPrompt = useStore((state) => state.setPrompt)
 
   // 태그 클릭 시 프롬프트에 추가하는 함수
   const handleTagClick = (tag) => {
@@ -92,7 +95,10 @@ export default function PromptPanel({ onGenerate }) {
 
       {/* 생성 버튼 */}
       <button
-        onClick={() => onGenerate(prompt)}
+        onClick={() => {
+          setGlobalPrompt(prompt); // 🛠️ 버튼 누르는 순간 한글 텍스트를 Zustand 전역 저장소에 즉시 각인
+          onGenerate(prompt);      // 이후 이미지 생성 트리거 작동
+        }}
         disabled={isLoading || !prompt.trim()}
         className={`w-full py-4 rounded-xl font-bold text-lg transition-all ${
           isLoading 
