@@ -1,77 +1,84 @@
+// src/components/ui/InputForm.jsx
 import React from 'react'
 import { useStore } from '../../store'
-import { POSES } from '../avatar/poses'
 
-export default function InputForm() {
-  const { gender, setGender, metrics, updateMetric, currentPose, setPose, isLoading } = useStore()
+const InputForm = () => {
+  // Zustand 스토어에서 전역 신체지수 상태와 수치 변경 함수(updateMetric) 로드
+  const { metrics, updateMetric, gender, setGender } = useStore()
 
-  const metricFields = [
-    { id: 'height', label: '키', unit: 'cm', min: 150, max: 200 },
-    { id: 'shoulder', label: '어깨 너비', unit: 'cm', min: 30, max: 60 },
-    { id: 'chest', label: '가슴둘레', unit: 'cm', min: 70, max: 120 },
-    { id: 'waist', label: '허리둘레', unit: 'cm', min: 60, max: 110 },
-    { id: 'hip', label: '엉덩이둘레', unit: 'cm', min: 70, max: 120 },
+  // 슬라이더 리스트 렌더링을 위한 데이터셋 정의
+  const sliderItems = [
+    { id: 'height', label: '키 (cm)', min: 150, max: 200 },
+    { id: 'shoulder', label: '어깨 너비 (cm)', min: 35, max: 60 },
+    { id: 'chest', label: '가슴 둘레 (cm)', min: 70, max: 120 },
+    { id: 'waist', label: '허리 둘레 (cm)', min: 60, max: 110 },
+    { id: 'hip', label: '엉덩이 둘레 (cm)', min: 70, max: 120 }
   ]
 
+  const handleSliderChange = (id, value) => {
+    console.log(`📏 [수치 조작 변동] 슬라이더 ID: ${id} ➡️ 변경값: ${value}`)
+    updateMetric(id, value)
+  }
+
   return (
-    <div className="space-y-6 mb-8 p-4 bg-white rounded-2xl shadow-sm border border-gray-100">
-      {/* 성별 선택 */}
-      <div>
-        <h3 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">👤 성별 설정</h3>
-        <div className="flex gap-2">
-          {[{ id: 'male', name: '남성' }, { id: 'female', name: '여성' }].map((g) => (
-            <button
-              key={g.id}
-              onClick={() => setGender(g.id)}
-              disabled={isLoading}
-              className={`flex-1 py-3 rounded-xl font-bold transition-all ${
-                gender === g.id ? 'bg-blue-600 text-white shadow-md' : 'bg-gray-50 text-gray-500 border'
-              }`}
-            >
-              {g.name}
-            </button>
-          ))}
+    <div className="space-y-6">
+      {/* 1. 성별 선택 영역 */}
+      {/* 🛠️ [색상 복구] 탁한 bg-slate-900/10을 제거하고 라이트모드에서 완벽한 화이트(bg-white), 다크모드에서 세련된 그레이(dark:bg-gray-800/50)로 원상복구 */}
+      <div className="bg-white dark:bg-gray-800/50 p-5 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
+        <label className="block text-xs font-black mb-3 tracking-wider text-gray-400 uppercase">GENDER / 성별</label>
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            type="button"
+            onClick={() => setGender('male')}
+            className={`py-2.5 rounded-xl font-bold text-sm transition-all duration-300 ${
+              gender === 'male'
+                ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/20 border-2 border-blue-400'
+                : 'bg-gray-50 dark:bg-gray-800 text-gray-500 border border-gray-100 dark:border-transparent hover:bg-gray-100 dark:hover:bg-gray-700'
+            }`}
+          >
+            👨 남성 (Male)
+          </button>
+          <button
+            type="button"
+            onClick={() => setGender('female')}
+            className={`py-2.5 rounded-xl font-bold text-sm transition-all duration-300 ${
+              gender === 'female'
+                ? 'bg-pink-500 text-white shadow-lg shadow-pink-500/20 border-2 border-pink-400'
+                : 'bg-gray-50 dark:bg-gray-800 text-gray-500 border border-gray-100 dark:border-transparent hover:bg-gray-100 dark:hover:bg-gray-700'
+            }`}
+          >
+            👩 여성 (Female)
+          </button>
         </div>
       </div>
 
-      {/* 신체 지수 조절 */}
-      <div className="space-y-6 pt-4 border-t border-gray-100">
-        <h2 className="text-lg font-bold text-gray-800">신체 정보 설정</h2>
-        {metricFields.map((field) => {
-          // 핵심: 현재 metrics에 값이 없으면 field의 기본 범위를 고려해 값을 강제 표시
-          const displayValue = metrics[field.id] !== undefined ? metrics[field.id] : 
-                               (field.id === 'shoulder' ? 45 : 
-                                field.id === 'height' ? 175 : 85);
-
-          return (
-            <div key={field.id} className="group">
-              <div className="flex justify-between items-center mb-2">
-                <label className="text-xs font-semibold text-gray-500">
-                  {field.label} ({field.unit})
-                </label>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="number"
-                    value={displayValue}
-                    disabled={isLoading}
-                    onChange={(e) => updateMetric(field.id, parseInt(e.target.value) || 0)}
-                    className="w-16 px-2 py-1 text-right font-black text-blue-600 border rounded bg-gray-50 outline-none focus:ring-2 focus:ring-blue-500 transition-all"
-                  />
-                </div>
-              </div>
-              <input
-                type="range"
-                min={field.min}
-                max={field.max}
-                value={displayValue}
-                disabled={isLoading}
-                onChange={(e) => updateMetric(field.id, parseInt(e.target.value))}
-                className="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600 transition-all"
-              />
+      {/* 2. 신체 치수 조절 슬라이더 영역 */}
+      {/* 🛠️ [색상 복구] 칙칙한 회색빛 찌꺼기를 지우고 본래의 화사하고 깨끗한 레이아웃 테마로 정돈 */}
+      <div className="bg-white dark:bg-gray-800/50 p-5 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm space-y-5">
+        <label className="block text-xs font-black mb-1 tracking-wider text-gray-400 uppercase">BODY METRICS / 신체 치수</label>
+        
+        {sliderItems.map((item) => (
+          <div key={item.id} className="flex flex-col space-y-2 py-1 border-b border-gray-50 dark:border-gray-800/60 last:border-none">
+            <div className="flex justify-between items-center">
+              <span className="text-xs font-bold text-gray-600 dark:text-gray-300">{item.label}</span>
+              <span className="text-xs font-black text-blue-500 font-mono bg-blue-50 dark:bg-blue-950/40 px-2.5 py-0.5 rounded-md border border-blue-100 dark:border-blue-900/30">
+                {metrics[item.id]} <span className="text-[9px] text-gray-400 dark:text-slate-500 font-normal">cm</span>
+              </span>
             </div>
-          )
-        })}
+            
+            <input
+              type="range"
+              min={item.min}
+              max={item.max}
+              value={metrics[item.id] || item.min}
+              onChange={(e) => handleSliderChange(item.id, Number(e.target.value))}
+              className="w-full h-1.5 bg-gray-100 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-400/50"
+            />
+          </div>
+        ))}
       </div>
     </div>
   )
 }
+
+export default InputForm
